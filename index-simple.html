@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAR Virtual Try-On</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        #video-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+        }
+
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        .controls h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            text-align: center;
+            color: #333;
+        }
+
+        .dress-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 400px;
+        }
+
+        .dress-btn {
+            padding: 12px 24px;
+            border: 2px solid #333;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .dress-btn:hover {
+            background: #f0f0f0;
+            transform: translateY(-2px);
+        }
+
+        .dress-btn.active {
+            background: #333;
+            color: white;
+        }
+
+        .adjustments {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+
+        .adjustments label {
+            display: block;
+            margin: 8px 0;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .adjustments input[type="range"] {
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px 50px;
+            border-radius: 10px;
+            z-index: 200;
+            text-align: center;
+        }
+
+        #loading.hidden {
+            display: none;
+        }
+
+        .instructions {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            z-index: 100;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .instructions.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="video-container">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <div class="instructions">
+        📏 Stand 2-3 feet away from camera<br>
+        👕 Position your upper body in center
+    </div>
+
+    <div class="controls">
+        <h2>Select Your Outfit</h2>
+        <div class="dress-buttons">
+            <button class="dress-btn active" data-dress="1">Dress 1</button>
+            <button class="dress-btn" data-dress="2">Dress 2</button>
+            <button class="dress-btn" data-dress="3">Dress 3</button>
+            <button class="dress-btn" data-dress="4">Dress 4</button>
+        </div>
+        <div class="adjustments">
+            <label>Size: <input type="range" id="size-slider" min="30" max="80" value="50"></label>
+            <label>Position: <input type="range" id="position-slider" min="0" max="40" value="15"></label>
+        </div>
+    </div>
+
+    <div id="loading">
+        <p>Starting Camera...</p>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const loading = document.getElementById('loading');
+
+        let currentDress = 1;
+        const dressImages = {};
+        let dressSize = 50; // percentage
+        let dressPosition = 15; // percentage from top
+
+        // Preload all dress images
+        function preloadDresses() {
+            for (let i = 1; i <= 4; i++) {
+                const img = new Image();
+                img.src = `assets/dress${i}.png`;
+                dressImages[i] = img;
+            }
+        }
+
+        // Start camera
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        facingMode: 'user',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                });
+                
+                video.srcObject = stream;
+                
+                video.onloadedmetadata = () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    loading.classList.add('hidden');
+                    drawFrame();
+                };
+            } catch (error) {
+                loading.innerHTML = `<p style="color: red;">Camera Error: ${error.message}</p>
+                    <p style="font-size: 14px; margin-top: 10px;">Please allow camera access</p>`;
+            }
+        }
+
+        // Draw video frame with dress overlay
+        function drawFrame() {
+            // Draw video frame
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Draw dress overlay (fitted to body)
+            const dress = dressImages[currentDress];
+            if (dress.complete) {
+                // Calculate dress dimensions based on slider
+                const dressWidth = canvas.width * (dressSize / 100);
+                const aspectRatio = dress.height / dress.width;
+                const dressHeight = dressWidth * aspectRatio;
+                
+                // Center horizontally, position based on slider
+                const x = (canvas.width - dressWidth) / 2;
+                const y = canvas.height * (dressPosition / 100);
+
+                ctx.drawImage(dress, x, y, dressWidth, dressHeight);
+            }
+
+            requestAnimationFrame(drawFrame);
+        }
+
+        // Button event listeners
+        document.querySelectorAll('.dress-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentDress = parseInt(btn.getAttribute('data-dress'));
+                
+                // Update active button
+                document.querySelectorAll('.dress-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+        // Slider event listeners
+        document.getElementById('size-slider').addEventListener('input', (e) => {
+            dressSize = parseInt(e.target.value);
+        });
+
+        document.getElementById('position-slider').addEventListener('input', (e) => {
+            dressPosition = parseInt(e.target.value);
+        });
+
+        // Initialize
+        preloadDresses();
+        startCamera();
+    </script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Library Test</title>
+</head>
+<body>
+    <h1>Testing Libraries...</h1>
+    <div id="status"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-face.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-face-three.prod.js"></script>
+    
+    <script>
+        const status = document.getElementById('status');
+        
+        function checkLibraries() {
+            let msg = '';
+            
+            if (window.THREE) {
+                msg += '✅ THREE.js loaded<br>';
+            } else {
+                msg += '❌ THREE.js NOT loaded<br>';
+            }
+            
+            if (window.MINDAR) {
+                msg += '✅ MINDAR loaded<br>';
+            } else {
+                msg += '❌ MINDAR NOT loaded<br>';
+            }
+            
+            if (window.MINDAR && window.MINDAR.FACE) {
+                msg += '✅ MINDAR.FACE loaded<br>';
+            } else {
+                msg += '❌ MINDAR.FACE NOT loaded<br>';
+            }
+            
+            status.innerHTML = msg;
+        }
+        
+        setTimeout(checkLibraries, 2000);
+    </script>
+</body>
+</html>
