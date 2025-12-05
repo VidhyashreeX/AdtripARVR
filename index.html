@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAR Virtual Try-On</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div id="ar-container"></div>
+        
+        <div class="controls">
+            <h2>Select Your Outfit</h2>
+            <div class="dress-buttons">
+                <button class="dress-btn active" data-dress="dress1">Dress 1</button>
+                <button class="dress-btn" data-dress="dress2">Dress 2</button>
+                <button class="dress-btn" data-dress="dress3">Dress 3</button>
+                <button class="dress-btn" data-dress="dress4">Dress 4</button>
+                <button class="dress-btn" data-dress="dress5">Dress 5</button>
+            </div>
+        </div>
+
+        <div id="loading">
+            <p>Loading AR Libraries...</p>
+        </div>
+    </div>
+
+    <!-- Load libraries in correct order -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-face.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-face-three.prod.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
